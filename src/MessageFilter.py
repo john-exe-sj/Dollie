@@ -1,0 +1,2 @@
+def filterMessage(message):
+    pass
