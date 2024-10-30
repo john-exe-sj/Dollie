@@ -32,10 +32,7 @@ async def on_message(message):
     
     # detects if dollie is being called upon to act. 
     if "dollie" in message.content.lower():
-        #await message.channel.send("Hello John!")
-        # where we instruct our bot to parse the message and hopefully send
-        # it to Ollama for query. 
-        # TODO: 
+        
         message.content = re.sub("\b[dD]ollie\b", "", message.content)
 
         notifying_strings = [
@@ -49,12 +46,6 @@ async def on_message(message):
         if type(message.content) == str:
             response = llm.invoke(message.content)
             await message.channel.send(response)
-        
-        """
-        1) Figure out a way to launch ollama locally
-        2) find a way to send it queries from discord
-        3) print ollamas response to the console. 
-        """
 
 
     
