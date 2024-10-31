@@ -4,9 +4,10 @@ from langchain_ollama import OllamaLLM
 from dotenv import load_dotenv
 import os
 import re
-import random
 
 load_dotenv()
+
+DOLLIE_REGEX = re.compile(r'\b[db]ollie\b')
 
 # Initializing llm 
 llm = OllamaLLM(model=os.getenv('MODEL_NAME'))
@@ -31,22 +32,18 @@ async def on_message(message):
         await bot.process_commands(message)  # Process commands
     
     # detects if dollie is being called upon to act. 
-    if "dollie" in message.content.lower():
-        
-        message.content = re.sub("\b[dD]ollie\b", "", message.content)
+    if DOLLIE_REGEX.search(message.content):
 
-        notifying_strings = [
-            "Got it, let me work that out for you.", 
-            "Let me see what I can do.", 
-            "Let me cook!", 
-            "Loud and clear, I'm sure I can come up with something for you. Sit tight.", 
-        ]
-
-        await message.channel.send(random.choice(notifying_strings))
+        # notifies user that dollie is thinking
+        usr_id = f"<@{message.author.id}>:\n"
+        await message.channel.send(f"Thinking... {usr_id}, I will mention you when I finish the task.")
+        payload = DOLLIE_REGEX.sub("", message.content)
+        response = llm.invoke(payload)
+        if response:
+            await message.channel.send(usr_id + response)
+        else:
+            await message.channel.send("I couldn't generate a response.")
         
-        if type(message.content) == str:
-            response = llm.invoke(message.content)
-            await message.channel.send(response)
 
 
     
