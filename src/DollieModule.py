@@ -43,6 +43,7 @@ async def on_message(message):
         ]
 
         await message.channel.send(random.choice(notifying_strings))
+        
         if type(message.content) == str:
             response = llm.invoke(message.content)
             await message.channel.send(response)
