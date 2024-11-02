@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from langchain_ollama import OllamaLLM
 from dotenv import load_dotenv
+import asyncio
 import os
 import re
 import logging
@@ -9,7 +10,6 @@ import logging
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 load_dotenv()
 
@@ -20,12 +20,30 @@ llm = OllamaLLM(model=os.getenv('MODEL_NAME'))
 
 # Create a bot instance with a command prefix
 intents = discord.Intents.all() 
-bot = commands.Bot(command_prefix=os.getenv('APP_COMMAND_PREFIX'),intents=intents)
+bot = commands.Bot(command_prefix=os.getenv('APP_COMMAND_PREFIX'), intents=intents)
 
-# Event when the bot is ready
+# Create an asyncio Queue
+request_queue = asyncio.Queue()
+
+async def process_messages(): 
+    while True: 
+        usr_id, payload, message = await request_queue.get()  # Wait for a message to be available
+        try:
+            response = await llm.ainvoke(payload)  # Send the payload to the LLM for processing
+            if response:
+                await message.channel.send(f"{usr_id}: {response}") 
+            else:
+                await message.channel.send("I couldn't generate a response.") 
+        except Exception as e:
+            logger.error(f"Error processing message: {e}")
+            await message.channel.send("An error occurred while processing your request.")
+        finally:
+            request_queue.task_done()
+
 @bot.event
 async def on_ready():
     logger.info(f'Logged in as {bot.user.name} - {bot.user.id}')
+    bot.loop.create_task(process_messages())  # Start processing messages
 
 @bot.event
 async def on_message(message):
@@ -39,29 +57,21 @@ async def on_message(message):
     
     # detects if dollie is being called upon to act. 
     if DOLLIE_REGEX.search(message.content):
-
-        # TODO: Create a messaging FIFO Queue, Dollie so far cannot process multiple requests
-        # from various users or multiple requests from the same user. 
-
-        # notifies user that dollie is thinking
         usr_id = f"<@{message.author.id}>"
-        await message.channel.send(f"Thinking... {usr_id}, I will mention you when I finish the task.")
-        # take out the name dollie from request payload, llm is not actually 'dollie'. 
         payload = DOLLIE_REGEX.sub("", message.content) 
-        response = llm.invoke(payload) # send the payload to the llm for processing. 
+        await request_queue.put((usr_id, payload, message))
+        # notifies user that dollie is thinking
+        await message.channel.send(f"Thinking... {usr_id}, I will mention you when I finish the task.")
+        logger.info(f"Recording {usr_id}'s request")
 
-        if response:
-            # include the user_id for mentions once the request/payload has been processed. 
-            await message.channel.send(usr_id + ": " + response) 
-        else:
-            await message.channel.send("I couldn't generate a response.")
-
-    
 @bot.command()
 @commands.has_permissions(administrator=True)  # Only users with administrator permissions can use this command
 async def shutdown(ctx):
     logger.info(f'Shutting down... {bot.user.name} - {bot.user.id}')
     await ctx.send("Shutting down...")
+    
+    # Wait for the queue to be empty before shutting down
+    await request_queue.join()  # Wait until all tasks are done
     await bot.close()  # Logs the bot out
 
 # Error handling for missing permissions
@@ -71,10 +81,14 @@ async def shutdown_error(ctx, error):
         logger.error(f'ERROR: Shutting down with improper permissions {bot.user.name} - {bot.user.id}')
         await ctx.send("You do not have permission to use this command.")
 
-
 def run_bot():
+    # Run the bot
     DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
     if not DISCORD_BOT_TOKEN:
         raise ValueError("DISCORD_BOT_TOKEN environment variable not set.")
-    else: 
-        bot.run(DISCORD_BOT_TOKEN) 
+    if not os.getenv('MODEL_NAME'):
+        raise ValueError("MODEL_NAME environment variable not set.")
+    if not os.getenv('APP_COMMAND_PREFIX'):
+        raise ValueError("APP_COMMAND_PREFIX environment variable not set.")
+    
+    asyncio.run(bot.start(DISCORD_BOT_TOKEN))  # Use asyncio.run to start the bot
