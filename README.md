@@ -68,7 +68,7 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+No licensing is available for this project. It is free for public use.
 
 ## Acknowledgments
 
