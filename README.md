@@ -10,7 +10,8 @@ Dollie is a Discord bot built using `discord.py` and `langchain_ollama`. It proc
 - Graceful shutdown command for administrators.
 
 ## Potential Upcoming Features:
-- Capability to mention and process files (images/pdf) to generate responses. 
+
+- Process files (images/pdf) to generate responses. 
 - Short-term context for conversations.
 - Ability to respond to messages in threads. 
 
