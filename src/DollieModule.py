@@ -7,20 +7,21 @@ import os
 import re
 import logging
 
+# Create a bot instance with a command prefix
+intents = discord.Intents.all() 
+bot = commands.Bot(command_prefix=os.getenv('APP_COMMAND_PREFIX'), intents=intents)
+
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-DOLLIE_REGEX = re.compile(r'\b[dD]ollie\b')
+# regular expression to account for different variations of how to refer to dollie, even in leetspeak. 
+DOLLIE_REGEX = re.compile(r'\b[dD][o0][l1|][l1|][i1!][e3]?\b', re.IGNORECASE)
 
 # Initializing llm 
 llm = OllamaLLM(model=os.getenv('MODEL_NAME'))
-
-# Create a bot instance with a command prefix
-intents = discord.Intents.all() 
-bot = commands.Bot(command_prefix=os.getenv('APP_COMMAND_PREFIX'), intents=intents)
 
 # Create an asyncio Queue
 request_queue = asyncio.Queue()
@@ -56,9 +57,16 @@ async def on_message(message):
         await bot.process_commands(message)  # Process commands
     
     # detects if dollie is being called upon to act. 
-    if DOLLIE_REGEX.search(message.content):
+    if DOLLIE_REGEX.search(message.content) or f'<@{bot.user.id}>' in message.content:
+
         usr_id = f"<@{message.author.id}>"
-        payload = DOLLIE_REGEX.sub("", message.content) 
+        payload = None
+        if DOLLIE_REGEX.search(message.content): 
+            payload = DOLLIE_REGEX.sub("", message.content)
+        else: 
+            payload = message.content.replace(f'<@{bot.user.id}>', "")
+        
+        # queues in user's request. 
         await request_queue.put((usr_id, payload, message))
         # notifies user that dollie is thinking
         await message.channel.send(f"Thinking... {usr_id}, I will mention you when I finish the task.")
