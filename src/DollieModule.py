@@ -30,7 +30,7 @@ async def process_messages():
     while True: 
         usr_id, payload, message = await request_queue.get()  # Wait for a message to be available
         try:
-            response = await llm.ainvoke(payload)  # Send the payload to the LLM for processing
+            response = await llm.ainvoke(payload + "keep the response below 2000 characters.")  # Send the payload to the LLM for processing
             if response:
                 await message.channel.send(f"{usr_id}: {response}") 
             else:
