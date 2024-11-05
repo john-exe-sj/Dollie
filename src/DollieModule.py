@@ -7,34 +7,32 @@ import os
 import re
 import logging
 
-# Create a bot instance with a command prefix
-intents = discord.Intents.all() 
+# Load environment variables
+load_dotenv()
+
+# Create a bot instance with a command prefix and intents
+intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=os.getenv('APP_COMMAND_PREFIX'), intents=intents)
 
-# Configuring basic logger
+# Configure basic logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+# Regular expression to account for variations of how to refer to Dollie, including leetspeak
+DOLLIE_REGEX = re.compile(r'\b[\b@][dD][o0][l1|][l1|][i1!][e3]?\b', re.IGNORECASE)
 
-# regular expression to account for different variations of how to refer to dollie, even in leetspeak. 
-DOLLIE_REGEX = re.compile(r'\b[dD][o0][l1|][l1|][i1!][e3]?\b', re.IGNORECASE)
-
-# Initializing llm 
+# Initialize the language model
 llm = OllamaLLM(model=os.getenv('MODEL_NAME'))
 
 # Create an asyncio Queue
 request_queue = asyncio.Queue()
 
-async def process_messages(): 
-    while True: 
+async def process_messages():
+    while True:
         usr_id, payload, message = await request_queue.get()  # Wait for a message to be available
         try:
-            response = await llm.ainvoke(payload + "keep the response below 2000 characters.")  # Send the payload to the LLM for processing
-            if response:
-                await message.channel.send(f"{usr_id}: {response}") 
-            else:
-                await message.channel.send("I couldn't generate a response.") 
+            response = await llm.ainvoke(payload + " keep the response below 2000 characters.")
+            await message.channel.send(f"{usr_id}: {response}" if response else "I couldn't generate a response.")
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             await message.channel.send("An error occurred while processing your request.")
@@ -48,27 +46,26 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    # Prevent the bot from responding to its own messages
     if message.author == bot.user:
-        return
+        return  # Prevent the bot from responding to its own messages
 
-    # Check if the message is a command
-    if message.content.startswith(bot.command_prefix):
-        await bot.process_commands(message)  # Process commands
-    
-    # detects if dollie is being called upon to act. 
-    if DOLLIE_REGEX.search(message.content) or f'<@{bot.user.id}>' in message.content:
+    await bot.process_commands(message)  # Process commands
 
+    bot_member = message.guild.me  # Get the bot's member object in the guild
+    role_ids = [role.id for role in bot_member.roles if role.name != "@everyone"]  # Exclude @everyone role
+
+    was_mentioned_via_role = any(f'<@&{role_id}>' in message.content for role_id in role_ids)
+
+    # Detect if Dollie is being called upon to act
+    if DOLLIE_REGEX.search(message.content) or f'<@{bot.user.id}>' in message.content or was_mentioned_via_role:
         usr_id = f"<@{message.author.id}>"
-        payload = None
-        if DOLLIE_REGEX.search(message.content): 
-            payload = DOLLIE_REGEX.sub("", message.content)
-        else: 
-            payload = message.content.replace(f'<@{bot.user.id}>', "")
+        payload = DOLLIE_REGEX.sub("", message.content) if DOLLIE_REGEX.search(message.content) else message.content
+        payload = payload.replace(f'<@{bot.user.id}>', "")  # Remove bot mention
+        # Replace any role mentions
+        for role_id in role_ids:
+            payload = payload.replace(f'<@&{role_id}>', "")
         
-        # queues in user's request. 
-        await request_queue.put((usr_id, payload, message))
-        # notifies user that dollie is thinking
+        await request_queue.put((usr_id, payload, message))  # Queue the user's request
         await message.channel.send(f"Thinking... {usr_id}, I will mention you when I finish the task.")
         logger.info(f"Recording {usr_id}'s request")
 
@@ -78,7 +75,6 @@ async def shutdown(ctx):
     logger.info(f'Shutting down... {bot.user.name} - {bot.user.id}')
     await ctx.send("Shutting down...")
     
-    # Wait for the queue to be empty before shutting down
     await request_queue.join()  # Wait until all tasks are done
     await bot.close()  # Logs the bot out
 
