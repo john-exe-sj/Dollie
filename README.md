@@ -4,7 +4,7 @@ Dollie is a Discord bot built using `discord.py` and `langchain_ollama`. It proc
 
 ## Features
 
-- Responds to messages mentioning "Dollie".
+- Responds to messages mentioning "Dollie" or through role and direct mentions.
 - Processes messages in a queue to handle multiple requests efficiently.
 - Supports command-based interactions.
 - Graceful shutdown command for administrators.
