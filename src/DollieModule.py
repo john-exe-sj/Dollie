@@ -22,15 +22,42 @@ DOLLIE_REGEX = re.compile(r'\b[dD][o0][l1|][l1|][i1!][e3]?\b', re.IGNORECASE)
 # Initializing LLM 
 llm = OllamaLLM(model=os.getenv('MODEL_NAME'))
 
-# Create an asyncio Queue
+# Create a request queue via asyncio. This is how we keep track on who to serve next. 
 request_queue = asyncio.Queue()
+
+MAX_AMT_CHR_MSGS = 2000
+MAX_AMT_CHR_EMBED = 4000
 
 async def process_messages(): 
     while True: 
         usr_id, payload, message = await request_queue.get()  # Wait for a message to be available
         try:
-            response = await llm.ainvoke(payload + " keep the response below 2000 characters.")  # Send the payload to the LLM for processing
-            await message.channel.send(f"{usr_id}: {response}" if response else "I couldn't generate a response.") 
+            response = await llm.ainvoke(payload)  # Send the payload to the LLM for processing
+
+            if response:  # Check if response is not empty
+                if len(response) < MAX_AMT_CHR_MSGS:
+                    await message.channel.send(f"{usr_id}: {response}")
+                elif len(response) < MAX_AMT_CHR_EMBED:
+                    embed = discord.Embed(description=response)
+                    await message.channel.send(
+                        f"{usr_id}, here's my response, it's longer than usual.", 
+                        embed=embed
+                    )
+                else:  # Response is too long
+                    # Create the directory if it doesn't exist
+                    os.makedirs("../output", exist_ok=True)  # Use exist_ok to avoid checking
+
+                    # Write response to a file
+                    file_path = '../output/response.txt'
+                    with open(file_path, 'w') as file:
+                        file.write(response)
+                    await message.channel.send(
+                        f"{usr_id}, here's my response as a text file", 
+                        file=discord.File(file_path)
+                    )
+            else:  # No response
+                await message.channel.send(f"{usr_id}: Could not send message. We've reached the limitations of Discord.")
+                 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             await message.channel.send("An error occurred while processing your request.")
