@@ -33,11 +33,14 @@ async def process_messages():
         usr_id, payload, message = await request_queue.get()  # Wait for a message to be available
         try:
             response = await llm.ainvoke(payload)  # Send the payload to the LLM for processing
-
+            
             if response:  # Check if response is not empty
-                if len(response) < MAX_AMT_CHR_MSGS:
+                response_length = len(response)  # Get the length of the response
+                logging.info(f"Response length: {response_length}")  # Log the length of the response
+
+                if response_length < MAX_AMT_CHR_MSGS:
                     await message.channel.send(f"{usr_id}: {response}")
-                elif len(response) < MAX_AMT_CHR_EMBED:
+                elif response_length < MAX_AMT_CHR_EMBED:
                     embed = discord.Embed(description=response)
                     await message.channel.send(
                         f"{usr_id}, here's my response, it's longer than usual.", 
@@ -50,6 +53,7 @@ async def process_messages():
                     # Write response to a file
                     file_path = '../output/response.txt'
                     with open(file_path, 'w') as file:
+                        logger.info(f"Creating/Writing text file {file_path}")
                         file.write(response)
                     await message.channel.send(
                         f"{usr_id}, here's my response as a text file", 
