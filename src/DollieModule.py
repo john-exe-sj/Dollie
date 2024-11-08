@@ -78,6 +78,8 @@ async def on_message(message):
     # Prevent the bot from responding to its own messages
     if message.author == bot.user:
         return
+    
+    print(message.content)
 
     # Check if the message is a command
     if message.content.startswith(bot.command_prefix):
