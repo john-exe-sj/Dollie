@@ -33,8 +33,6 @@ async def on_message(message):
     # Prevent the bot from responding to its own messages
     if message.author == bot.user:
         return
-    
-    print(message.content)
 
     # Check if the message is a command
     if message.content.startswith(bot.command_prefix):
@@ -56,7 +54,7 @@ async def on_message(message):
             payload = payload.replace(f'<@&{role_id}>', "")
         
         # Queue the user's request
-        await request_queue.put((usr_id, payload, message))
+        await request_queue.put((usr_id, payload, message, bot.user))
         await message.channel.send(f"Thinking... {usr_id}, I will mention you when I finish the task.")
         logger.info(f"Recording {usr_id}'s request")
 
