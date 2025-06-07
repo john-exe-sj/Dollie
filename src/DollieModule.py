@@ -79,8 +79,11 @@ async def on_message(message):
     if message.author == bot.user:
         return
     
-    print(message.content)
-
+    # Check if the message is in the allowed channel
+    if (str(message.channel.id) != os.getenv('ALLOWED_CHANNEL_ID')) and (str(message.channel.id) != os.getenv('TEST_CHANNEL_ID')):
+        print(f"Message not in allowed channel {message.channel.id} != {os.getenv('ALLOWED_CHANNEL_ID')} or {os.getenv('TEST_CHANNEL_ID')}")
+        return
+    
     # Check if the message is a command
     if message.content.startswith(bot.command_prefix):
         await bot.process_commands(message)  # Process commands
@@ -131,5 +134,7 @@ def run_bot():
         raise ValueError("MODEL_NAME environment variable not set.")
     if not os.getenv('APP_COMMAND_PREFIX'):
         raise ValueError("APP_COMMAND_PREFIX environment variable not set.")
+    if not os.getenv('ALLOWED_CHANNEL_ID'):
+        raise ValueError("ALLOWED_CHANNEL_ID environment variable not set.")
     
     asyncio.run(bot.start(DISCORD_BOT_TOKEN))  # Use asyncio.run to start the bot
