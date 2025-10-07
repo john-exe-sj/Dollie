@@ -1,9 +1,7 @@
 from langchain_ollama import OllamaLLM
-from langchain_core.prompts import PromptTemplate, MessagesPlaceholder
-from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
-from typing import List, Dict
+from typing import List
 from dotenv import load_dotenv
 import discord
 import os
@@ -16,6 +14,16 @@ load_dotenv()
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Initializing LLM 
+llm = OllamaLLM(model=os.getenv('MODEL_NAME'))
+
+MAX_AMT_CHR_MSGS = 2000
+MAX_AMT_CHR_EMBED = 4000
+
+# Message history store with timestamps for cleanup
+store = {}
+store_timestamps = {}
 
 # Custom message history store
 class InMemoryChatMessageHistory(BaseChatMessageHistory):
@@ -37,12 +45,8 @@ class InMemoryChatMessageHistory(BaseChatMessageHistory):
     def clear(self) -> None:
         self.messages.clear()
 
-# Message history store with timestamps for cleanup
-store = {}
-store_timestamps = {}
-
-def get_session_history(session_id: str, bot_client_id: str = "") -> BaseChatMessageHistory:
-    if session_id not in store:
+def get_session_history(user_id: str, bot_client_id: str = "") -> BaseChatMessageHistory:
+    if user_id not in store:
         # Create initial system message
         system_message = f"""You are a helpful chat-bot assistant with the user id; {bot_client_id} that strictly answers programming,
         computer science, data structures, algorithm or any computer-related questions for children who are ages 6 and older. 
@@ -51,12 +55,12 @@ def get_session_history(session_id: str, bot_client_id: str = "") -> BaseChatMes
         not include violence and profanity. Neither should you imply any violent acts or suggest things/actions that a child should do.
         You are not to mention this in your responses."""
         
-        store[session_id] = InMemoryChatMessageHistory(system_message=system_message)
-        store_timestamps[session_id] = time.time()
+        store[user_id] = InMemoryChatMessageHistory(system_message=system_message)
+        store_timestamps[user_id] = time.time()
     else:
         # Update timestamp when session is accessed
-        store_timestamps[session_id] = time.time()
-    return store[session_id]
+        store_timestamps[user_id] = time.time()
+    return store[user_id]
 
 async def cleanup_old_sessions(max_age_hours: int = 24):
     """Remove sessions older than max_age_hours"""
@@ -64,14 +68,14 @@ async def cleanup_old_sessions(max_age_hours: int = 24):
     max_age_seconds = max_age_hours * 3600
     to_remove = []
     
-    for session_id, timestamp in store_timestamps.items():
+    for user_id, timestamp in store_timestamps.items():
         if current_time - timestamp > max_age_seconds:
-            to_remove.append(session_id)
+            to_remove.append(user_id)
     
-    for session_id in to_remove:
-        del store[session_id]
-        del store_timestamps[session_id]
-        logger.info(f"Cleaned up old session: {session_id}")
+    for user_id in to_remove:
+        del store[user_id]
+        del store_timestamps[user_id]
+        logger.info(f"Cleaned up old session: {user_id}")
     
     if to_remove:
         logger.info(f"Cleaned up {len(to_remove)} old sessions")
@@ -82,28 +86,6 @@ async def periodic_cleanup(interval_hours: int = 1):
         await asyncio.sleep(interval_hours * 3600)  # Convert hours to seconds
         await cleanup_old_sessions()
 
-# Initializing LLM 
-llm = OllamaLLM(model=os.getenv('MODEL_NAME'))
-
-MAX_AMT_CHR_MSGS = 2000
-MAX_AMT_CHR_EMBED = 4000
-
-# Create a function to get session history with bot_client_id
-def get_session_history_with_bot_id(bot_client_id: str):
-    def _get_session_history(session_id: str) -> BaseChatMessageHistory:
-        return get_session_history(session_id, bot_client_id)
-    return _get_session_history
-
-# Create the runnable with message history (will be created per user)
-def create_runnable_with_history(bot_client_id: str):
-    """Create a runnable with message history for a specific bot client"""
-    return RunnableWithMessageHistory(
-        llm,
-        get_session_history_with_bot_id(bot_client_id),
-        input_messages_key="input",
-        history_messages_key="history",
-    )
-
 async def process_messages(request_queue): 
 
     while True: 
@@ -111,6 +93,9 @@ async def process_messages(request_queue):
         try:
             # Get the session history for this user
             session_history = get_session_history(usr_id, str(bot_user))
+
+            # TODO: Add further contextual information by use of a vectordb.
+            # - Store it as a system message.
             
             # Add the user's message to history
             session_history.add_user_message(payload)
