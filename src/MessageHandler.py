@@ -82,30 +82,6 @@ async def periodic_cleanup(interval_hours: int = 1):
         await asyncio.sleep(interval_hours * 3600)  # Convert hours to seconds
         await cleanup_old_sessions()
 
-def insert_system_message_for_user(user_id: str, message: str, position: int = -1):
-    """Insert a system message for a specific user's conversation"""
-    if user_id in store:
-        store[user_id].insert_system_message_at_position(message, position)
-        logger.info(f"Inserted system message for user {user_id}")
-    else:
-        logger.warning(f"User {user_id} not found in store")
-
-def update_system_message_for_user(user_id: str, message: str):
-    """Update the system message for a specific user's conversation"""
-    if user_id in store:
-        store[user_id].update_system_message(message)
-        logger.info(f"Updated system message for user {user_id}")
-    else:
-        logger.warning(f"User {user_id} not found in store")
-
-def add_system_message_for_user(user_id: str, message: str):
-    """Add a system message to a specific user's conversation"""
-    if user_id in store:
-        store[user_id].add_system_message(message)
-        logger.info(f"Added system message for user {user_id}")
-    else:
-        logger.warning(f"User {user_id} not found in store")
-
 # Initializing LLM 
 llm = OllamaLLM(model=os.getenv('MODEL_NAME'))
 
