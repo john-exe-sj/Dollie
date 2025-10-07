@@ -12,7 +12,11 @@ Dollie is a Discord bot built using `discord.py` and `langchain_ollama`. It proc
 ## Potential Upcoming Features:
 
 - Process files (images/pdf) to generate responses. 
-- Short-term context for conversations.
+- Improved context handling:
+  - Implement sliding window for conversation history
+  - Add vector database for semantic context retrieval
+  - Implement token counting and management
+  - Add persistent storage for conversation history
 - Ability to respond to messages in threads. 
 
 ## Requirements

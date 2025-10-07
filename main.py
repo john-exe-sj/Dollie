@@ -1,5 +1,5 @@
 from discord.ext import commands
-from src.MessageHandler import process_messages
+from src.MessageHandler import process_messages, periodic_cleanup
 from dotenv import load_dotenv
 import discord
 import asyncio
@@ -27,11 +27,17 @@ request_queue = asyncio.Queue()
 async def on_ready():
     logger.info(f'Logged in as {bot.user.name} - {bot.user.id}')
     bot.loop.create_task(process_messages(request_queue))  # Start processing messages
+    bot.loop.create_task(periodic_cleanup())  # Start periodic cleanup task
 
 @bot.event
 async def on_message(message):
     # Prevent the bot from responding to its own messages
     if message.author == bot.user:
+        return
+
+    # Check if the message is in the allowed channel
+    if (str(message.channel.id) != os.getenv('ALLOWED_CHANNEL_ID')) and (str(message.channel.id) != os.getenv('TEST_CHANNEL_ID')):
+        logger.info(f"Message not in allowed channel {message.channel.id} != {os.getenv('ALLOWED_CHANNEL_ID')} or {os.getenv('TEST_CHANNEL_ID')}")
         return
 
     # Check if the message is a command
