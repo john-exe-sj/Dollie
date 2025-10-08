@@ -36,7 +36,7 @@ async def on_message(message):
         return
 
     # Check if the message is in the allowed channel
-    if (str(message.channel.id) != os.getenv('ALLOWED_CHANNEL_ID')) and (str(message.channel.id) != os.getenv('TEST_CHANNEL_ID')):
+    if str(message.channel.id) not in os.getenv('LIST_OF_ACCEPTABLE_CHANNELS').split(","):
         logger.info(f"Message not in allowed channel {message.channel.id} != {os.getenv('ALLOWED_CHANNEL_ID')} or {os.getenv('TEST_CHANNEL_ID')}")
         return
 
