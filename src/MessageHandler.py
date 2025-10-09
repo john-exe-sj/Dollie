@@ -1,4 +1,4 @@
-from langchain_ollama import OllamaLLM
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from typing import List
@@ -8,15 +8,22 @@ import os
 import logging
 import time
 import asyncio
+import getpass
 
 load_dotenv()
+
+if "DOLLIES_GROQ_KEY" not in os.environ:
+    os.environ["DOLLIES_GROQ_KEY"] = getpass.getpass("Enter your Groq API key: ")
 
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initializing LLM 
-llm = OllamaLLM(model=os.getenv('MODEL_NAME'))
+llm = ChatGroq(
+    groq_api_key=os.getenv('DOLLIES_GROQ_KEY'),
+    model_name=os.getenv('MODEL_NAME')
+)
 
 MAX_AMT_CHR_MSGS = 2000
 MAX_AMT_CHR_EMBED = 4000
@@ -35,8 +42,8 @@ class InMemoryChatMessageHistory(BaseChatMessageHistory):
     def add_user_message(self, message: str) -> None:
         self.messages.append(HumanMessage(content=message))
     
-    def add_ai_message(self, message: str) -> None:
-        self.messages.append(AIMessage(content=message))
+    def add_ai_message(self, ai_message: AIMessage) -> None:
+        self.messages.append(ai_message)
     
     def add_system_message(self, message: str) -> None:
         """Add a system message to the conversation"""
@@ -103,19 +110,19 @@ async def process_messages(request_queue):
             # Get all messages from history (including system message)
             all_messages = session_history.messages
             
-            # Get response from LLM
+            # Get response from LLM, recieved as an AIMessage() object. 
             response = await llm.ainvoke(all_messages)
-            
+
             # Add AI response to history
             session_history.add_ai_message(response)
             if response:  # Check if response is not empty
-                response_length = len(response)  # Get the length of the response
+                response_length = len(response.content)  # Get the length of the response
                 logging.info(f"Response length: {response_length}")  # Log the length of the response
 
                 if response_length < MAX_AMT_CHR_MSGS:
-                    await message.channel.send(f"{usr_id}: {response}")
+                    await message.channel.send(f"{usr_id}: {response.content}")
                 elif response_length < MAX_AMT_CHR_EMBED:
-                    embed = discord.Embed(description=response)
+                    embed = discord.Embed(description=response.content)
                     await message.channel.send(
                         f"{usr_id}, here's my response, it's longer than usual.", 
                         embed=embed
@@ -128,7 +135,7 @@ async def process_messages(request_queue):
                     file_path = '../output/response.txt'
                     with open(file_path, 'w') as file:
                         logger.info(f"Creating/Writing text file {file_path}")
-                        file.write(response)
+                        file.write(response.content)
                     await message.channel.send(
                         f"{usr_id}, here's my response as a text file", 
                         file=discord.File(file_path)
