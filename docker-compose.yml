@@ -1,0 +1,37 @@
+services:
+  dollie-bot:
+    build: .
+    container_name: dollie-discord-bot
+    restart: unless-stopped
+    environment:
+      # Discord Bot Configuration
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - APP_COMMAND_PREFIX=${APP_COMMAND_PREFIX:-!}
+      
+      # AI Model Configuration
+      - MODEL_NAME=${MODEL_NAME:-llama-3.1-8b-instant}
+      - DOLLIES_GROQ_KEY=${DOLLIES_GROQ_KEY}
+      
+      # Channel Configuration
+      - LIST_OF_ACCEPTABLE_CHANNELS=${LIST_OF_ACCEPTABLE_CHANNELS}
+    volumes:
+      # Mount output directory for file responses
+      - ./output:/app/output
+    networks:
+      - dollie-network
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  dollie-network:
+    driver: bridge
+
+# Optional: Add a volume for persistent data if needed
+volumes:
+  dollie-output:
+    driver: local

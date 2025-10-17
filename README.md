@@ -48,8 +48,9 @@ Dollie is an intelligent Discord bot built using `discord.py` and `langchain-gro
 ### Prerequisites
 - A Discord application and bot token
 - A Groq API key (free tier available)
+- Python 3.7+ (for local installation) or Docker (for containerized deployment)
 
-### Setup Steps
+### Option 1: Local Installation
 
 1. **Clone the repository**:
    ```bash
@@ -77,13 +78,47 @@ Dollie is an intelligent Discord bot built using `discord.py` and `langchain-gro
    # Channel Configuration
    LIST_OF_ACCEPTABLE_CHANNELS=channel_id_1,channel_id_2
    ```
+
+### Option 2: Docker Deployment
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/yourusername/dollie-discord-bot.git
+   cd dollie-discord-bot
+   ```
+
+2. **Create environment file**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your actual values
+   ```
+
+3. **Run with Docker Compose**:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Or build and run manually**:
+   ```bash
+   # Build the image
+   docker build -t dollie-bot .
    
-   **Required Variables**:
-   - `DISCORD_BOT_TOKEN`: Your Discord bot token from the Discord Developer Portal
-   - `MODEL_NAME`: Groq model name (e.g., `llama-3.1-8b-instant`, `mixtral-8x7b-32768`)
-   - `DOLLIES_GROQ_KEY`: Your Groq API key from [console.groq.com](https://console.groq.com)
-   - `APP_COMMAND_PREFIX`: Command prefix for bot commands (default: `!`)
-   - `LIST_OF_ACCEPTABLE_CHANNELS`: Comma-separated list of channel IDs where the bot can respond
+   # Run the container
+   docker run -d \
+     --name dollie-discord-bot \
+     --env-file .env \
+     -v $(pwd)/output:/app/output \
+     dollie-bot
+   ```
+
+### Environment Variables
+
+**Required Variables**:
+- `DISCORD_BOT_TOKEN`: Your Discord bot token from the Discord Developer Portal
+- `MODEL_NAME`: Groq model name (e.g., `llama-3.1-8b-instant`, `mixtral-8x7b-32768`)
+- `DOLLIES_GROQ_KEY`: Your Groq API key from [console.groq.com](https://console.groq.com)
+- `APP_COMMAND_PREFIX`: Command prefix for bot commands (default: `!`)
+- `LIST_OF_ACCEPTABLE_CHANNELS`: Comma-separated list of channel IDs where the bot can respond
 
 ## 🚀 Usage
 
@@ -147,6 +182,25 @@ Ensure your bot has the following permissions:
 **Session cleanup issues**:
 - Sessions automatically clean up after 24 hours of inactivity
 - Manual cleanup runs every hour in the background
+
+### Docker Issues
+
+**Container won't start**:
+- Check if all environment variables are set correctly
+- Verify the `.env` file exists and has proper values
+- Check container logs: `docker logs dollie-discord-bot`
+
+**Permission issues**:
+- Ensure the output directory has proper permissions
+- The container runs as a non-root user for security
+
+**Build failures**:
+- Clear Docker cache: `docker system prune -a`
+- Rebuild without cache: `docker build --no-cache -t dollie-bot .`
+
+**Docker Compose issues**:
+- Check if ports are already in use
+- Verify the compose file syntax: `docker-compose config`
 
 ## 🤝 Contributing
 
