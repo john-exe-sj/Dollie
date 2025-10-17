@@ -8,21 +8,20 @@ import os
 import logging
 import time
 import asyncio
-import getpass
+from .SecretsManager import get_secret
 
+secret = get_secret()
 load_dotenv()
-
-if "DOLLIES_GROQ_KEY" not in os.environ:
-    os.environ["DOLLIES_GROQ_KEY"] = getpass.getpass(
-        "Enter your Groq API key: ")
 
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initializing LLM
-llm = ChatGroq(groq_api_key=os.getenv('DOLLIES_GROQ_KEY'),
-               model_name=os.getenv('MODEL_NAME'))
+llm = ChatGroq(
+    groq_api_key=secret["DOLLIES_GROQ_KEY"],
+    model_name=secret["MODEL_NAME"]
+)
 
 MAX_AMT_CHR_MSGS = 2000
 MAX_AMT_CHR_EMBED = 4000
@@ -30,7 +29,6 @@ MAX_AMT_CHR_EMBED = 4000
 # Message history store with timestamps for cleanup
 store = {}
 store_timestamps = {}
-
 
 # Custom message history store
 class InMemoryChatMessageHistory(BaseChatMessageHistory):
@@ -53,7 +51,6 @@ class InMemoryChatMessageHistory(BaseChatMessageHistory):
     def clear(self) -> None:
         self.messages.clear()
 
-
 def get_session_history(user_id: str,
                         bot_client_id: str = "") -> BaseChatMessageHistory:
     if user_id not in store:
@@ -73,7 +70,6 @@ def get_session_history(user_id: str,
         store_timestamps[user_id] = time.time()
     return store[user_id]
 
-
 async def cleanup_old_sessions(max_age_hours: int = 24):
     """Remove sessions older than max_age_hours"""
     current_time = time.time()
@@ -92,13 +88,11 @@ async def cleanup_old_sessions(max_age_hours: int = 24):
     if to_remove:
         logger.info(f"Cleaned up {len(to_remove)} old sessions")
 
-
 async def periodic_cleanup(interval_hours: int = 1):
     """Run cleanup periodically in the background"""
     while True:
         await asyncio.sleep(interval_hours * 3600)  # Convert hours to seconds
         await cleanup_old_sessions()
-
 
 async def process_messages(request_queue):
 

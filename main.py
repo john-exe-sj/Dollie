@@ -3,11 +3,12 @@ from src.MessageHandler import process_messages, periodic_cleanup
 from dotenv import load_dotenv
 import discord
 import asyncio
-import os
 import re
 import logging
+from src.SecretsManager import get_secret
 
-load_dotenv()
+# Obtaining secrets from AWS Secrets Manager
+secrets = get_secret()
 
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
@@ -15,15 +16,17 @@ logger = logging.getLogger(__name__)
 
 # Create a bot instance with a command prefix
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=os.getenv('APP_COMMAND_PREFIX'),
-                   intents=intents)
+
+bot = commands.Bot(
+    command_prefix=secrets['APP_COMMAND_PREFIX'],
+    intents=intents
+)
 
 # Regular expression to account for different variations of how to refer to Dollie
 DOLLIE_REGEX = re.compile(r'\b[dD][o0][l1|][l1|][i1!][e3]?\b', re.IGNORECASE)
 
 # Create a request queue via asyncio. This is how we keep track on who to serve next.
 request_queue = asyncio.Queue()
-
 
 @bot.event
 async def on_ready():
@@ -32,7 +35,6 @@ async def on_ready():
         process_messages(request_queue))  # Start processing messages
     bot.loop.create_task(periodic_cleanup())  # Start periodic cleanup task
 
-
 @bot.event
 async def on_message(message):
     # Prevent the bot from responding to its own messages
@@ -40,8 +42,7 @@ async def on_message(message):
         return
 
     # Check if the message is in the allowed channel
-    if str(message.channel.id) not in os.getenv(
-            'LIST_OF_ACCEPTABLE_CHANNELS').split(","):
+    if str(message.channel.id) not in secrets['LIST_OF_ACCEPTABLE_CHANNELS'].split(","):
         logger.info(f"Message not in allowed channel {message.channel.id}")
         return
 
@@ -75,7 +76,6 @@ async def on_message(message):
         await request_queue.put((usr_id, payload, message, bot.user))
         logger.info(f"Recording {usr_id}'s request")
 
-
 @bot.command()
 @commands.has_permissions(
     administrator=True
@@ -88,7 +88,6 @@ async def shutdown(ctx):
     await request_queue.join()  # Wait until all tasks are done
     await bot.close()  # Logs the bot out
 
-
 # Error handling for missing permissions
 @shutdown.error
 async def shutdown_error(ctx, error):
@@ -98,19 +97,18 @@ async def shutdown_error(ctx, error):
         )
         await ctx.send("You do not have permission to use this command.")
 
-
 def run_bot():
     # Run the bot
-    DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-    if not DISCORD_BOT_TOKEN:
+    if not secrets:
+        raise ValueError("Could not retrieve AWS Secrets.")
+    if not secrets['DISCORD_BOT_TOKEN']:
         raise ValueError("DISCORD_BOT_TOKEN environment variable not set.")
-    if not os.getenv('MODEL_NAME'):
+    if not secrets['MODEL_NAME']:
         raise ValueError("MODEL_NAME environment variable not set.")
-    if not os.getenv('APP_COMMAND_PREFIX'):
+    if not secrets['APP_COMMAND_PREFIX']:
         raise ValueError("APP_COMMAND_PREFIX environment variable not set.")
 
-    asyncio.run(bot.start(DISCORD_BOT_TOKEN))
-
+    asyncio.run(bot.start(secrets['DISCORD_BOT_TOKEN']))
 
 if __name__ == "__main__":
     run_bot()
