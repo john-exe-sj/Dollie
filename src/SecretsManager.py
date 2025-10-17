@@ -10,6 +10,8 @@ import json
 
 result = None
 
+#TODO: Seperate between dev and prod.
+
 def get_secret():
 
     global result
