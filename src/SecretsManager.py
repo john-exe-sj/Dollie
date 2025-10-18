@@ -14,30 +14,37 @@ result = None
 
 def get_secret():
 
-    global result
+    mode = os.getenv("DEPLOYMENT_MODE", "PROD")
+    secret_name = "prod/dollie/api_and_config"
+    region_name = "us-east-2"
 
-    if result: 
-        return result
-
-    else: 
-        secret_name = "prod/dollie/api_and_config"
-        region_name = "us-east-2"
-
-        # Create a Secrets Manager client
+    if mode == "DEV": 
+         # Create a Secrets Manager client, using stored credentials.
         session = boto3.session.Session(
             aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
             aws_secret_access_key=os.getenv("SECRET_KEY")
         )
+    
+    elif mode == "PROD":
+        # Create a Secrets Manager client via instance role. 
+        session = boto3.session.Session()
 
-        client = session.client(
+    client = session.client(
             service_name='secretsmanager',
             region_name=region_name
-        )
+    )
+
+    global result
+    if result: 
+        return result
+
+    else: 
 
         try:
             get_secret_value_response = client.get_secret_value(
                 SecretId=secret_name
             )
+
         except ClientError as e:
             # For a list of exceptions thrown, see
             # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
@@ -47,3 +54,5 @@ def get_secret():
         result = json.loads(get_secret_value_response['SecretString'])
         return result
 
+if __name__ == "__main__": 
+    print(get_secret())
