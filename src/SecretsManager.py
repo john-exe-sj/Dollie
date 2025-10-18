@@ -9,15 +9,13 @@ import os
 import json
 
 result = None
-
-#TODO: Seperate between dev and prod.
-
 def get_secret():
 
+    global result
     mode = os.getenv("DEPLOYMENT_MODE", "PROD")
     secret_name = "prod/dollie/api_and_config"
     region_name = "us-east-2"
-
+    
     if mode == "DEV": 
          # Create a Secrets Manager client, using stored credentials.
         session = boto3.session.Session(
@@ -34,7 +32,6 @@ def get_secret():
             region_name=region_name
     )
 
-    global result
     if result: 
         return result
 
