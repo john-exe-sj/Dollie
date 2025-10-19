@@ -7,6 +7,10 @@ import boto3
 from botocore.exceptions import ClientError
 import os
 import json
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 result = None
 def get_secret():
@@ -15,7 +19,8 @@ def get_secret():
     mode = os.getenv("DEPLOYMENT_MODE", "PROD")
     secret_name = "prod/dollie/api_and_config"
     region_name = "us-east-2"
-    print(mode)
+
+    logger.info(f"Deployment mode - {mode}")
     if mode == "DEV": 
          # Create a Secrets Manager client, using stored credentials.
         session = boto3.session.Session(
