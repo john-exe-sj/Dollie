@@ -15,7 +15,7 @@ def get_secret():
     mode = os.getenv("DEPLOYMENT_MODE", "PROD")
     secret_name = "prod/dollie/api_and_config"
     region_name = "us-east-2"
-    
+    print(mode)
     if mode == "DEV": 
          # Create a Secrets Manager client, using stored credentials.
         session = boto3.session.Session(

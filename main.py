@@ -1,6 +1,5 @@
 from discord.ext import commands
 from src.MessageHandler import process_messages, periodic_cleanup
-from dotenv import load_dotenv
 import discord
 import asyncio
 import re

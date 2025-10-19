@@ -2,7 +2,6 @@ from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from typing import List
-from dotenv import load_dotenv
 import discord
 import os
 import logging
@@ -11,7 +10,6 @@ import asyncio
 from .SecretsManager import get_secret
 
 secret = get_secret()
-load_dotenv()
 
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
@@ -100,6 +98,11 @@ async def process_messages(request_queue):
         usr_id, payload, message, bot_user = await request_queue.get(
         )  # Wait for a message to be available
         try:
+            # TODO: Optional: create structural database to store the RAG or embeddings?? JSONIFY the embeddings
+            # 1) create the embeddings as the user prompts
+            #          - Once user submits query, have llm ingest? or create an embedding/vectors in a database? (knowledge nugget)
+            #          - We may need to have the llm generate SQL queries once it recieves a user's question/answer/response. 
+            #          - 
             # Get the session history for this user
             session_history = get_session_history(usr_id, str(bot_user))
 
