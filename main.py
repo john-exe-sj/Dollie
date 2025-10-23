@@ -4,6 +4,7 @@ import discord
 import asyncio
 import re
 import logging
+import watchtower
 from src.SecretsManager import get_secret
 
 # Obtaining secrets from AWS Secrets Manager
@@ -12,6 +13,10 @@ secrets = get_secret()
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+cw_handler = watchtower.CloudWatchLogHandler(log_group=secrets['CLOUD_WATCH_LOG_GROUP'])
+# Add the CloudWatch handler to the logger
+logger.addHandler(cw_handler)
 
 # Create a bot instance with a command prefix
 intents = discord.Intents.all()
@@ -81,6 +86,8 @@ async def on_message(message):
 )  # Only users with administrator permissions can use this command
 async def shutdown(ctx):
     logger.info(f'Shutting down... {bot.user.name} - {bot.user.id}')
+    logging.shutdown()
+    
     await ctx.send("Shutting down...")
 
     # Wait for the queue to be empty before shutting down

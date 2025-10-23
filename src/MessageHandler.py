@@ -7,6 +7,7 @@ import os
 import logging
 import time
 import asyncio
+import watchtower
 from .SecretsManager import get_secret
 
 secret = get_secret()
@@ -14,6 +15,13 @@ secret = get_secret()
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Create a CloudWatchLogHandler
+# Replace 'your-log-group-name' with your desired CloudWatch log group
+#TODO: Place a secret here 
+cw_handler = watchtower.CloudWatchLogHandler(log_group='your-log-group-name')
+# Add the CloudWatch handler to the logger
+logger.addHandler(cw_handler)
 
 # Initializing LLM
 llm = ChatGroq(

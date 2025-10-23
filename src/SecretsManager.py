@@ -8,9 +8,15 @@ from botocore.exceptions import ClientError
 import os
 import json
 import logging
+import watchtower
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+#TODO: Place a secret here 
+cw_handler = watchtower.CloudWatchLogHandler(log_group='your-log-group-name')
+# Add the CloudWatch handler to the logger
+logger.addHandler(cw_handler)
 
 result = None
 def get_secret():
