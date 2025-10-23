@@ -13,9 +13,6 @@ import watchtower
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-#TODO: Place a secret here 
-
-
 secrets = None
 
 def get_secret():
