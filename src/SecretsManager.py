@@ -14,14 +14,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 #TODO: Place a secret here 
-cw_handler = watchtower.CloudWatchLogHandler(log_group='your-log-group-name')
-# Add the CloudWatch handler to the logger
-logger.addHandler(cw_handler)
 
-result = None
+
+secrets = None
+
 def get_secret():
 
-    global result
+    global secrets
     mode = os.getenv("DEPLOYMENT_MODE", "PROD")
     secret_name = "prod/dollie/api_and_config"
     region_name = "us-east-2"
@@ -43,8 +42,9 @@ def get_secret():
             region_name=region_name
     )
 
-    if result: 
-        return result
+    if secrets: 
+        logger.info(f"Secrets exist - returning secrets")
+        return secrets
 
     else: 
 
@@ -57,10 +57,12 @@ def get_secret():
             # For a list of exceptions thrown, see
             # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
             print(e.with_traceback())
+            logger.error(f"Error Occurred in Secrets Manager; ClientError - {e.with_traceback()}")
             raise e
 
-        result = json.loads(get_secret_value_response['SecretString'])
-        return result
-
-if __name__ == "__main__": 
-    print(get_secret())
+        secrets = json.loads(get_secret_value_response['SecretString'])
+        cw_handler = watchtower.CloudWatchLogHandler(log_group=secrets['CLOUD_WATCH_LOG_GROUP'])
+        # Add the CloudWatch handler to the logger
+        logger.addHandler(cw_handler)
+        logger.info(f"Secrets retrieved.")
+        return secrets

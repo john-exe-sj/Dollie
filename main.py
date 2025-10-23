@@ -13,7 +13,6 @@ secrets = get_secret()
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 cw_handler = watchtower.CloudWatchLogHandler(log_group=secrets['CLOUD_WATCH_LOG_GROUP'])
 # Add the CloudWatch handler to the logger
 logger.addHandler(cw_handler)
@@ -47,7 +46,7 @@ async def on_message(message):
 
     # Check if the message is in the allowed channel
     if str(message.channel.id) not in secrets['LIST_OF_ACCEPTABLE_CHANNELS'].split(","):
-        logger.info(f"Message not in allowed channel {message.channel.id}")
+        logger.error(f"Message not in allowed channel {message.channel.id} > {message.channel.name}")
         return
 
     # Check if the message is a command
@@ -67,10 +66,8 @@ async def on_message(message):
             message.content
     ) or f'<@{bot.user.id}>' in message.content or was_mentioned_via_role:
         usr_id = f"<@{message.author.id}>"
-        payload = DOLLIE_REGEX.sub("", message.content) if DOLLIE_REGEX.search(
-            message.content) else message.content
-        payload = payload.replace(f'<@{bot.user.id}>',
-                                  "")  # Remove bot mention
+        payload = DOLLIE_REGEX.sub("", message.content) if DOLLIE_REGEX.search(message.content) else message.content
+        payload = payload.replace(f'<@{bot.user.id}>', "")  # Remove bot mention
 
         # Remove any role mentions
         for role_id in role_ids:
@@ -78,7 +75,7 @@ async def on_message(message):
 
         # Queue the user's request
         await request_queue.put((usr_id, payload, message, bot.user))
-        logger.info(f"Recording {usr_id}'s request")
+        logger.info(f"Recording {usr_id}'s request, placing onto queue, recieved from channel {message.channel.id} > {message.channel.name}")
 
 @bot.command()
 @commands.has_permissions(

@@ -10,23 +10,21 @@ import asyncio
 import watchtower
 from .SecretsManager import get_secret
 
-secret = get_secret()
+secrets = get_secret()
 
 # Configuring basic logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create a CloudWatchLogHandler
-# Replace 'your-log-group-name' with your desired CloudWatch log group
-#TODO: Place a secret here 
-cw_handler = watchtower.CloudWatchLogHandler(log_group='your-log-group-name')
+cw_handler = watchtower.CloudWatchLogHandler(log_group=secrets['CLOUD_WATCH_LOG_GROUP'])
 # Add the CloudWatch handler to the logger
 logger.addHandler(cw_handler)
 
 # Initializing LLM
 llm = ChatGroq(
-    groq_api_key=secret["DOLLIES_GROQ_KEY"],
-    model_name=secret["MODEL_NAME"]
+    groq_api_key=secrets["DOLLIES_GROQ_KEY"],
+    model_name=secrets["MODEL_NAME"]
 )
 
 MAX_AMT_CHR_MSGS = 2000
@@ -57,8 +55,7 @@ class InMemoryChatMessageHistory(BaseChatMessageHistory):
     def clear(self) -> None:
         self.messages.clear()
 
-def get_session_history(user_id: str,
-                        bot_client_id: str = "") -> BaseChatMessageHistory:
+def get_session_history(user_id: str, bot_client_id: str = "") -> BaseChatMessageHistory:
     if user_id not in store:
         # Create initial system message
         system_message = f"""You are a helpful chat-bot assistant with the user id; {bot_client_id} that strictly answers programming,
@@ -103,8 +100,7 @@ async def periodic_cleanup(interval_hours: int = 1):
 async def process_messages(request_queue):
 
     while True:
-        usr_id, payload, message, bot_user = await request_queue.get(
-        )  # Wait for a message to be available
+        usr_id, payload, message, bot_user = await request_queue.get()  # Wait for a message to be available
         try:
             # TODO: Optional: create structural database to store the RAG or embeddings?? JSONIFY the embeddings
             # 1) create the embeddings as the user prompts
@@ -131,16 +127,18 @@ async def process_messages(request_queue):
             if response:  # Check if response is not empty
                 response_length = len(
                     response.content)  # Get the length of the response
-                logging.info(f"Response length: {response_length}"
-                             )  # Log the length of the response
-
+                logging.info(f"Response length: {response_length}")  # Log the length of the response
                 if response_length < MAX_AMT_CHR_MSGS:
                     await message.channel.send(f"{usr_id}: {response.content}")
+                    logger.info(f"Response sent as a regular message to {usr_id}")
+
                 elif response_length < MAX_AMT_CHR_EMBED:
                     embed = discord.Embed(description=response.content)
                     await message.channel.send(
                         f"{usr_id}, here's my response, it's longer than usual.",
                         embed=embed)
+                    logger.info(f"Response sent as an embed to {usr_id}")
+
                 else:  # Response is too long
                     # Create the directory if it doesn't exist
                     os.makedirs(
@@ -155,10 +153,14 @@ async def process_messages(request_queue):
                     await message.channel.send(
                         f"{usr_id}, here's my response as a text file",
                         file=discord.File(file_path))
+                        
+                    logger.info(f"Response sent as a text file to {usr_id}")
+
             else:  # No response
                 await message.channel.send(
                     f"{usr_id}: Could not send message. We've reached the limitations of Discord."
                 )
+                logger.error("Could not send message. We've reached the limitations of Discord.")
 
         except Exception as e:
             logger.error(f"Error processing message: {e}, {e.args}")
