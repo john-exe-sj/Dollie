@@ -8,7 +8,6 @@ from botocore.exceptions import ClientError
 import os
 import json
 import logging
-import watchtower
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,8 +57,4 @@ def get_secret():
             raise e
 
         secrets = json.loads(get_secret_value_response['SecretString'])
-        cw_handler = watchtower.CloudWatchLogHandler(log_group=secrets['CLOUD_WATCH_LOG_GROUP'])
-        # Add the CloudWatch handler to the logger
-        logger.addHandler(cw_handler)
-        logger.info(f"Secrets retrieved.")
         return secrets
