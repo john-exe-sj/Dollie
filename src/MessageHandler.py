@@ -7,10 +7,23 @@ import os
 import logging
 import time
 import asyncio
+import watchtower
+import boto3
 from .SecretsManager import get_secret
-from .Logger import logger
 
 secrets = get_secret()
+
+# Configuring basic logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Create a CloudWatchLogHandler
+cw_handler = watchtower.CloudWatchLogHandler(
+            log_group=secrets['CLOUD_WATCH_LOG_GROUP'],
+            boto3_client=boto3.client("logs", region_name=os.getenv('AWS_DEFAULT_REGION'))
+)
+# Add the CloudWatch handler to the logger
+logger.addHandler(cw_handler)
 
 # Initializing LLM
 llm = ChatGroq(

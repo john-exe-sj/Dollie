@@ -4,11 +4,25 @@ import discord
 import asyncio
 import re
 import logging
+import watchtower
+import boto3
+import os
 from src.SecretsManager import get_secret
-from src.Logger import logger
 
 # Obtaining secrets from AWS Secrets Manager
 secrets = get_secret()
+
+# Configuring basic logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+cw_handler = watchtower.CloudWatchLogHandler(
+            log_group=secrets['CLOUD_WATCH_LOG_GROUP'],
+            boto3_client=boto3.client("logs", region_name=os.getenv('AWS_DEFAULT_REGION'))
+)
+
+# Add the CloudWatch handler to the logger
+logger.addHandler(cw_handler)
 
 # Create a bot instance with a command prefix
 intents = discord.Intents.all()

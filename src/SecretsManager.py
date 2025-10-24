@@ -3,11 +3,13 @@
 # or implementing the sample code, visit the AWS docs:
 # https://aws.amazon.com/developer/language/python/
 
-import boto3
+
 from botocore.exceptions import ClientError
+import boto3
 import os
 import json
 import logging
+import watchtower
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -57,4 +59,13 @@ def get_secret():
             raise e
 
         secrets = json.loads(get_secret_value_response['SecretString'])
+
+        cw_handler = watchtower.CloudWatchLogHandler(
+            log_group=secrets['CLOUD_WATCH_LOG_GROUP'],
+            boto3_client=boto3.client("logs", region_name=os.getenv('AWS_DEFAULT_REGION'))
+        )
+
+        # Add the CloudWatch handler to the logger
+        logger.addHandler(cw_handler)
+        logger.info(f"Secrets retrieved.")
         return secrets
