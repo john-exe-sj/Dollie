@@ -4,7 +4,7 @@
 [![Discord.py](https://img.shields.io/badge/discord.py-2.3+-green.svg)](https://discordpy.readthedocs.io/)
 [![License](https://img.shields.io/badge/License-Free-red.svg)]()
 
-Dollie is an intelligent Discord bot built using `discord.py` and `langchain-groq`. Hosted on Amazon Web Services, it processes user messages asynchronously and provides AI-powered responses through Groq's language models, specifically designed to help children aged 6+ with programming and computer science questions.
+Dollie is an intelligent Discord bot built using `discord.py` and `langchain-anthropic`. Hosted on Amazon Web Services, it processes user messages asynchronously and provides AI-powered responses through Anthropic's Claude models, specifically designed to help children aged 6+ with programming and computer science questions.
 
 ## ✨ Features
 
@@ -36,13 +36,15 @@ Dollie is an intelligent Discord bot built using `discord.py` and `langchain-gro
   - Advanced token counting and management
   - Persistent storage for conversation history
 - **Thread Support**: Ability to respond in Discord threads
-- **Multi-Model Support**: Support for different AI models beyond Groq
+- **Multi-Model Support**: Configure the Claude model through `MODEL_NAME`
 
 ## 📋 Requirements
 
 - **Python**: 3.7 or higher
 - **Discord.py**: 2.3.0 or higher
-- **LangChain Groq**: For AI model integration
+- **LangChain Anthropic**: For Claude model integration
+- **Anthropic API key**: Store as `DOLLIES_ANTHROPIC_KEY` in the application secrets
+- **Model name**: Set `MODEL_NAME` to a supported Claude model ID (Docker Compose defaults to `claude-sonnet-4-5`)
 - **Python-dotenv**: For environment variable management
 
 ## 🚀 Usage
@@ -71,8 +73,8 @@ This project is free for public use. No licensing restrictions apply.
 
 - **[discord.py](https://discordpy.readthedocs.io/en/stable/)** - Discord API wrapper for Python
 - **[LangChain](https://langchain.com/)** - Framework for building LLM applications
-- **[Groq](https://groq.com/)** - Fast AI inference platform
-- **[LangChain Groq](https://python.langchain.com/docs/integrations/chat/groq)** - Groq integration for LangChain
+- **[Anthropic](https://www.anthropic.com/)** - Claude models
+- **[LangChain Anthropic](https://python.langchain.com/docs/integrations/chat/anthropic/)** - Anthropic integration for LangChain
 - **[Amazon Web Services](https://aws.amazon.com/)** - EC2 Instance hosting and logging.
 
 ---

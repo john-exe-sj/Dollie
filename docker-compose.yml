@@ -6,11 +6,11 @@ services:
     environment:
       # Discord Bot Configuration
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-      - APP_COMMAND_PREFIX=${APP_COMMAND_PREFIX:-!}
+      - APP_COMMAND_PREFIX=${APP_COMMAND_PREFIX:-/}
       
       # AI Model Configuration
-      - MODEL_NAME=${MODEL_NAME:-llama-3.1-8b-instant}
-      - DOLLIES_GROQ_KEY=${DOLLIES_GROQ_KEY}
+      - MODEL_NAME=${MODEL_NAME:-claude-sonnet-4-5}
+      - DOLLIES_ANTHROPIC_KEY=${DOLLIES_ANTHROPIC_KEY}
       
       # Channel Configuration
       - LIST_OF_ACCEPTABLE_CHANNELS=${LIST_OF_ACCEPTABLE_CHANNELS}

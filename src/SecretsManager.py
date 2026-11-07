@@ -4,26 +4,34 @@
 # https://aws.amazon.com/developer/language/python/
 
 
-from botocore.exceptions import ClientError
-import boto3
 import os
-import json
 import logging
-import watchtower
+from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-secrets = None
-
 def get_secret():
-
-    global secrets
-    mode = os.getenv("DEPLOYMENT_MODE", "PROD")
-    secret_name = "prod/dollie/api_and_config"
-    region_name = "us-east-2"
+    load_dotenv()
+    mode = os.getenv("DEPLOYMENT_MODE", "DEV").upper()
 
     logger.info(f"Deployment mode - {mode}")
+
+    if mode == "DEV":
+        secrets = {
+            "DOLLIES_ANTHROPIC_KEY": os.getenv("DOLLIES_ANTHROPIC_KEY"),
+            "MODEL_NAME": os.getenv("MODEL_NAME"),
+            "APP_COMMAND_PREFIX": os.getenv("APP_COMMAND_PREFIX"),
+            "LIST_OF_ACCEPTABLE_CHANNELS": os.getenv("LIST_OF_ACCEPTABLE_CHANNELS"),
+            "DISCORD_BOT_TOKEN": os.getenv("DISCORD_BOT_TOKEN"),
+        }
+
+    elif mode == "PROD":
+        raise NotImplementedError("AWS Secrets Manager integration is not configured.")
+    else:
+        raise ValueError(f"Unsupported deployment mode: {mode}")
+
+    """
     if mode == "DEV": 
          # Create a Secrets Manager client, using stored credentials.
         session = boto3.session.Session(
@@ -59,13 +67,17 @@ def get_secret():
             raise e
 
         secrets = json.loads(get_secret_value_response['SecretString'])
+        """
+        # CloudWatch logging is disabled.
+        # cw_handler = watchtower.CloudWatchLogHandler(
+        #     log_group=secrets['CLOUD_WATCH_LOG_GROUP'],
+        #     boto3_client=boto3.client("logs", region_name=os.getenv('AWS_DEFAULT_REGION'))
+        # )
+        # logger.addHandler(cw_handler)
 
-        cw_handler = watchtower.CloudWatchLogHandler(
-            log_group=secrets['CLOUD_WATCH_LOG_GROUP'],
-            boto3_client=boto3.client("logs", region_name=os.getenv('AWS_DEFAULT_REGION'))
-        )
+    missing = [name for name, value in secrets.items() if not value]
+    if missing:
+        raise RuntimeError(f"Missing required configuration: {', '.join(missing)}")
 
-        # Add the CloudWatch handler to the logger
-        logger.addHandler(cw_handler)
-        logger.info(f"Secrets retrieved.")
-        return secrets
+    logger.info("Secrets retrieved.")
+    return secrets
